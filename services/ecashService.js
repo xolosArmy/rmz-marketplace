@@ -1,10 +1,18 @@
-const localEcash = require('local-ecash');
+const wallet = require('cashu-wallet');
+
+async function verifyProofs(proofs) {
+  wallet.verifyProofs(proofs);
+  return true;
+}
 
 // Locks the buyer token in an escrow. Validates Cashu proofs before locking.
 async function lockFunds(buyerToken, escrowId, amount) {
   try {
-    localEcash.validateCashuToken(buyerToken, amount);
-    return localEcash.lock(buyerToken, escrowId);
+    if (buyerToken.amount !== amount) {
+      throw new Error('Amount mismatch');
+    }
+    verifyProofs(buyerToken.proofs);
+    return wallet.lock(buyerToken, escrowId);
   } catch (err) {
     throw new Error(`lockFunds failed: ${err.message}`);
   }
@@ -14,7 +22,7 @@ async function lockFunds(buyerToken, escrowId, amount) {
 async function releaseFunds(escrowId, sellerAddress, amount) {
   try {
     // In a real implementation, amount validation would occur here.
-    return localEcash.release(escrowId, sellerAddress);
+    return wallet.release(escrowId, sellerAddress, amount);
   } catch (err) {
     throw new Error(`releaseFunds failed: ${err.message}`);
   }
@@ -23,4 +31,5 @@ async function releaseFunds(escrowId, sellerAddress, amount) {
 module.exports = {
   lockFunds,
   releaseFunds,
+  verifyProofs,
 };
