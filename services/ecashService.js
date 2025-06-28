@@ -1,12 +1,23 @@
-// Placeholder service for interacting with eCash-related operations.
-// TODO: Implement actual logic for locking funds on the blockchain.
-function lockFunds(walletFrom, escrowAddress, amount) {
-  // TODO: integrate with eCash SDK or API
+const localEcash = require('local-ecash');
+
+// Locks the buyer token in an escrow. Validates Cashu proofs before locking.
+async function lockFunds(buyerToken, escrowId, amount) {
+  try {
+    localEcash.validateCashuToken(buyerToken, amount);
+    return localEcash.lock(buyerToken, escrowId);
+  } catch (err) {
+    throw new Error(`lockFunds failed: ${err.message}`);
+  }
 }
 
-// TODO: Implement actual logic for releasing funds from escrow.
-function releaseFunds(escrowAddress, sellerAddress, amount) {
-  // TODO: integrate with eCash SDK or API
+// Releases the escrowed token to the seller address.
+async function releaseFunds(escrowId, sellerAddress, amount) {
+  try {
+    // In a real implementation, amount validation would occur here.
+    return localEcash.release(escrowId, sellerAddress);
+  } catch (err) {
+    throw new Error(`releaseFunds failed: ${err.message}`);
+  }
 }
 
 module.exports = {
