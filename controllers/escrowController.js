@@ -4,11 +4,16 @@ const ecashService = require('../services/ecashService');
 // Creates a new Escrow document and locks funds using ecashService
 async function lockEscrow(req, res) {
   try {
-    const { orderId, buyer, seller, amountXEC } = req.body;
+    const { orderId, buyer, seller, amountXEC, buyerToken } = req.body;
     const escrow = await Escrow.create({ orderId, buyer, seller, amountXEC });
 
-    // Call to lock funds (implementation pending)
-    ecashService.lockFunds(buyer, escrow._id, amountXEC);
+    try {
+      await ecashService.lockFunds(buyerToken, escrow._id, amountXEC);
+    } catch (err) {
+      escrow.status = 'DISPUTE';
+      await escrow.save();
+      return res.status(400).json({ error: err.message });
+    }
 
     res.status(201).json(escrow);
   } catch (err) {
@@ -26,10 +31,13 @@ async function releaseEscrow(req, res) {
     escrow.status = 'RELEASED';
     await escrow.save();
 
-    // Call to release funds (implementation pending)
-    ecashService.releaseFunds(escrow._id, escrow.seller, escrow.amountXEC);
+    const token = await ecashService.releaseFunds(
+      escrow._id,
+      escrow.seller,
+      escrow.amountXEC
+    );
 
-    res.json(escrow);
+    res.json({ escrow, sellerToken: token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
